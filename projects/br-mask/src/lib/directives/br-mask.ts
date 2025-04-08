@@ -20,13 +20,14 @@ export class BrMaskModel {
 }
 
 @Directive({
-  selector: '[brmasker]'
+  selector: '[brmasker]',
+  standalone: false
 })
 
 @Injectable()
 export class BrMaskDirective implements OnInit {
   @Input() brmasker: BrMaskModel = new BrMaskModel();
-  @Input() formControlName: string;
+  @Input() formControlName: string = '';
 
   /**
   * Event key up in directive
@@ -68,7 +69,7 @@ export class BrMaskDirective implements OnInit {
     }
     if (this.controlContainer) {
       if (this.formControlName) {
-        this.brmasker.form = this.controlContainer.control.get(this.formControlName);
+        this.brmasker.form = this.controlContainer.control.get(this.formControlName) ?? undefined;
       } else {
         console.warn('Missing FormControlName directive from host element of the component');
       }
@@ -107,8 +108,10 @@ export class BrMaskDirective implements OnInit {
       this.elementRef.nativeElement.value = value;
       return;
     }
-    this.brmasker.form.setValue(value, { emitViewToModelChange });
-    this.brmasker.form.updateValueAndValidity();
+    if (this.brmasker.form) {
+      this.brmasker.form.setValue(value, { emitViewToModelChange });
+      this.brmasker.form.updateValueAndValidity();
+    }
   }
 
   /**
@@ -138,7 +141,7 @@ export class BrMaskDirective implements OnInit {
     }
 
     if (this.brmasker.userCaracters) {
-      return this.usingSpecialCharacters(value, this.brmasker.mask, this.brmasker.len);
+      return this.usingSpecialCharacters(value, this.brmasker.mask || '', this.brmasker.len ?? 0);
     }
 
     if (value && config.mask) {
@@ -230,7 +233,7 @@ export class BrMaskDirective implements OnInit {
         return this.thousand(formValue);
       }
       if (this.brmasker.userCaracters) {
-        return this.usingSpecialCharacters(formValue, this.brmasker.mask, this.brmasker.len);
+        return this.usingSpecialCharacters(formValue, this.brmasker.mask, this.brmasker.len ?? 0);
       }
       return this.onInput(formValue);
     } else {
@@ -359,7 +362,10 @@ export class BrMaskDirective implements OnInit {
   * @returns {string} string money
   */
   private moneyMask(value: any, config: BrMaskModel): string {
-    const decimal = config.decimal || this.brmasker.decimal;
+    let decimal = config.decimal || this.brmasker.decimal;
+    if (decimal === undefined) {
+      decimal = 2;
+    }
 
     value = value
       .replace(/\D/gi, '')
@@ -393,7 +399,7 @@ export class BrMaskDirective implements OnInit {
   * @returns {string} value
   */
   private onInput(value: any): string {
-    return this.formatField(value, this.brmasker.mask, this.brmasker.len);
+    return this.formatField(value, this.brmasker.mask ?? '', this.brmasker.len ?? 0);
   }
 
   /**
@@ -441,6 +447,7 @@ export class BrMaskDirective implements OnInit {
     if (thousands) {
       return thousands.join(`${this.brmasker.thousand || '.'}`).split('').reverse().join('');
     }
+    return '';
   }
 
   /**
